@@ -94,6 +94,9 @@
   <ItemGroup>
     <Compile Include="Commands\GoogleSheetCloseCommand.cs" />
     <Compile Include="Commands\GoogleSheetDownloadCommand.cs" />
+    <Compile Include="Commands\GoogleSheetGetColumnCommand.cs" />
+    <Compile Include="Commands\GoogleSheetGetRowCommand.cs" />
+    <Compile Include="Commands\GoogleSheetGetRowCountCommand.cs" />
     <Compile Include="Commands\GoogleSheetFindCommand.cs" />
     <Compile Include="Commands\GoogleSheetFindAllCommand.cs" />
     <Compile Include="Commands\GoogleSheetGetValueCommand.cs" />

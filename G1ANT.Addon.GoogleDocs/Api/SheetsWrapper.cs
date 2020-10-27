@@ -9,31 +9,22 @@
 */
 using G1ANT.Language;
 using Google.Apis.Auth.OAuth2;
+using Google.Apis.Download;
+using Google.Apis.Drive.v3;
+using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
-using Google.Apis.Services;
 using Google.Apis.Util.Store;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using Google.Apis.Download;
-using Google.Apis.Drive.v3;
 
 namespace G1ANT.Addon.GoogleDocs
 {
     public class SheetsWrapper : IDisposable
     {
-        private SheetsWrapper() { }
-
-        public SheetsWrapper(int id)
-        {
-            this.Id = id;
-        }
-
         public int Id { get; set; }
 
         static string[] scopes = { SheetsService.Scope.Spreadsheets, SheetsService.Scope.Drive, SheetsService.Scope.DriveFile };
@@ -42,11 +33,19 @@ namespace G1ANT.Addon.GoogleDocs
         SheetsService service;
         string spreadSheetId = null;
         string range = null;
-        string[] rangeMultiple = null;
         SpreadsheetsResource.ValuesResource.GetRequest Request;
         public string spreadSheetName = null;
         Spreadsheet spreadsheet;
-        public List<Sheet> sheets;
+        public List<Sheet> Sheets { get; private set; }
+
+
+        private SheetsWrapper() { }
+
+        public SheetsWrapper(int id)
+        {
+            this.Id = id;
+        }
+
 
         private void CreateCredential(bool isShared = true)
         {
@@ -80,6 +79,7 @@ namespace G1ANT.Addon.GoogleDocs
 
             }
         }
+
 
         public string GetSpreadSheetId()
         {
@@ -117,7 +117,7 @@ namespace G1ANT.Addon.GoogleDocs
         public void AssignSpreadSheet()
         {
             spreadsheet = GetSpreadsheetName();
-            sheets = GetSheetsList();
+            Sheets = GetSheetsList();
             spreadSheetName = spreadsheet.Properties.Title;
         }
 
@@ -139,9 +139,8 @@ namespace G1ANT.Addon.GoogleDocs
 
             spreadSheetName = title;
             spreadsheet.Properties.Title = title;
-
-
         }
+
         public void Open(string spreadSheetID, bool isShared = true)
         {
             spreadSheetId = spreadSheetID;
@@ -149,12 +148,14 @@ namespace G1ANT.Addon.GoogleDocs
             CreateService();
             AssignSpreadSheet();
         }
+        
         public ValueRange GetValueOLD(string cell, string sheetName = "")
         {
             range = sheetName + "!" + cell;
             Request = service.Spreadsheets.Values.Get(spreadSheetId, range);
             return Request.Execute();
         }
+        
         public BatchGetValuesResponse GetValue(string cell, string sheetName = "")
         {
             string[] cells = cell.Split('&');
@@ -163,15 +164,16 @@ namespace G1ANT.Addon.GoogleDocs
             {
                 rangMult[i] = sheetName + "!" + cells[i];
             }
-            //
-            SpreadsheetsResource.ValuesResource.BatchGetRequest BatchGetRequest = service.Spreadsheets.Values.BatchGet(spreadSheetId);
-            BatchGetRequest.Ranges = rangMult;
-            BatchGetValuesResponse response = BatchGetRequest.Execute();
+            
+            var batchGetRequest = service.Spreadsheets.Values.BatchGet(spreadSheetId);
+            batchGetRequest.Ranges = rangMult;
+            BatchGetValuesResponse response = batchGetRequest.Execute();
             return response;
         }
+
         public string FindValue(string value, string sheetName = "")
         {
-            range = sheetName + "!A1:A200";
+            range = sheetName + "!A1:A200"; // todo: WTF? search is performed only on the first 200 rows of the first column...
             Request = service.Spreadsheets.Values.Get(spreadSheetId, range);
             var val = Request.Execute();
 
@@ -190,6 +192,42 @@ namespace G1ANT.Addon.GoogleDocs
 
             return string.Empty;
         }
+
+        public int GetRowCount(string sheetName = "", string columnName = "A")
+        {
+            range = $"{sheetName}!{columnName}1:{columnName}100000";
+            Request = service.Spreadsheets.Values.Get(spreadSheetId, range);
+            return Request.Execute().Values.Count;
+        }
+
+        public List<string> GetRow(string sheetName, int rowIndex)
+        {
+            range = $"{sheetName}!A{rowIndex}:ZZ{rowIndex}";
+            Request = service.Spreadsheets.Values.Get(spreadSheetId, range);
+
+            var values = Request.Execute().Values;
+            if (!values.Any())
+               throw new ArgumentOutOfRangeException($"Row {rowIndex} not found");
+
+            var row = values[0].Select(r => r.ToString()).ToList();
+            return row;
+        }
+
+        public List<string> GetColumn(string sheetName, string columnName)
+        {
+            range = $"{sheetName}!{columnName}1:{columnName}100000";
+            Request = service.Spreadsheets.Values.Get(spreadSheetId, range);
+
+            var values = Request.Execute().Values;
+            if (!values.Any())
+                throw new ArgumentOutOfRangeException($"Column {columnName} not found");
+
+            //todo: consider returning objects not strings and use Scripter.Structures.CreateStructure here or in command
+            var column = values.Select(r => r.FirstOrDefault()?.ToString() ?? "").ToList();
+            return column;
+        }
+
+
         private string GetExcelColumnName(int columnNumber)
         {
             int dividend = columnNumber;
@@ -205,6 +243,7 @@ namespace G1ANT.Addon.GoogleDocs
 
             return columnName;
         }
+
         public string FindAll(string in_value, string sheetName = "")
         {
             range = sheetName;
@@ -214,18 +253,13 @@ namespace G1ANT.Addon.GoogleDocs
             IList<Object> rows;
             List<string> addr = new List<string>();
             string res = null;
-            //int ind=1;
             if (values != null && values.Count > 0)
             {
-                //foreach (var row in values)
                 for (int i1 = 0; i1 < values.Count; i1++)
                 {
                     rows = values[i1];
-                    //foreach (var cell in row)
                     for (int i2 = 0; i2 < rows.Count; i2++)
                     {
-
-                        //string s = val.Values[i][0].ToString();
                         if (rows[i2].ToString() == (in_value))
                         {
                             res = (res == null) ? (GetExcelColumnName(i2 + 1) + (i1 + 1).ToString()) : (res + "&" + GetExcelColumnName(i2 + 1) + (i1 + 1).ToString());
@@ -240,6 +274,7 @@ namespace G1ANT.Addon.GoogleDocs
 
             return string.Empty;
         }
+        
         public string FindFirst(string in_value, string sheetName = "")
         {
             range = sheetName;
@@ -274,6 +309,7 @@ namespace G1ANT.Addon.GoogleDocs
 
             return string.Empty;
         }
+        
         public void SetValue(string cell, string value, string sheetName = null, bool numeric = false)
         {
             object v = value;
@@ -298,6 +334,7 @@ namespace G1ANT.Addon.GoogleDocs
             //UpdateValuesResponse result2 = update.Execute();
             update.Execute();
         }
+        
         public string DownloadFile(string path, string type = @"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         {
             string format = null;

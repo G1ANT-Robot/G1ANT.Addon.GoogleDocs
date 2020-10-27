@@ -9,6 +9,8 @@
 */
 
 using G1ANT.Language;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace G1ANT.Addon.GoogleDocs
 {
@@ -25,37 +27,50 @@ namespace G1ANT.Addon.GoogleDocs
 
             [Argument(Tooltip = "Name of a variable where the command's result will be stored")]
             public VariableStructure Result { get; set; } = new VariableStructure("result");
-
-            
         }
+
         public GoogleSheetGetValueCommand(AbstractScripter scripter) : base(scripter)
         { }
+
         public void Execute(Arguments arguments)
         {
             var sheetsManager = SheetsManager.CurrentSheet;
-            var sheetName = arguments.SheetName.Value == "" ? sheetsManager.sheets[0].Properties.Title : arguments.SheetName.Value;
+            var sheetName = arguments.SheetName.Value == "" ? sheetsManager.Sheets[0].Properties.Title : arguments.SheetName.Value;
             var val = sheetsManager.GetValue(arguments.Range.Value, sheetName);
-            ListStructure result = new ListStructure(new System.Collections.Generic.List<object>());
-            //string result=null;
-            //var result = val. == null ? "" : val.Values[0][0].ToString();
-            if (val.ValueRanges[0].Values ==null)
+
+
+            var groups = new List<List<List<string>>>(); // groups of columns of cells
+
+            if (val.ValueRanges[0].Values == null)
             {
                 for (int i = 0; i < val.ValueRanges.Count; i++)
                 {
-                    TextStructure tmp = new TextStructure("");
-                    result.Value.Add(tmp);
+                    const string emptyCell = "";
+                    var emptyColumn = new List<string>() { emptyCell };
+                    var emptyGroup = new List<List<string>>() { emptyColumn };
+                    groups = new List<List<List<string>>>() { emptyGroup };
                 }
-                Scripter.Variables.SetVariableValue(arguments.Result.Value, result);
             }
             else
-            { 
-                for (int i = 0; i < val.ValueRanges.Count; i++)
-                {
-                   // TextStructure tmp = new TextStructure(val.ValueRanges[i].Values[0][0].ToString());
-                    result.Value.Add(val.ValueRanges[i].Values[0][0].ToString());
-                }
-                Scripter.Variables.SetVariableValue(arguments.Result.Value, result);
+            {
+                groups = val.ValueRanges.Select(
+                    group => group.Values.Select(
+                        column => column.Select(
+                            cell => cell.ToString()
+                        ).ToList()
+                    ).ToList()
+                ).ToList();
             }
+
+            var resultStructure = new ListStructure(groups.Select(
+                group => new ListStructure(group.Select(
+                    columns => new ListStructure(columns.Select(
+                        cell => new TextStructure(cell.ToString())
+                     ))
+                ))
+            ));
+
+            Scripter.Variables.SetVariableValue(arguments.Result.Value, resultStructure);
         }
     }
 }

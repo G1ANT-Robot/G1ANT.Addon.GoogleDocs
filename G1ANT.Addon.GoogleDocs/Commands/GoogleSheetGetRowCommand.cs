@@ -8,20 +8,21 @@
 *
 */
 using G1ANT.Language;
+using System.Linq;
 
 namespace G1ANT.Addon.GoogleDocs
 {
 
-    [Command(Name = "googlesheet.findall", Tooltip = "This command finds all cells with a specified value")]
-    public class GoogleSheetFindAllCommand : Command
+    [Command(Name = "googlesheet.getrow", Tooltip = "This command returns all data from a row")]
+    public class GoogleSheetGetRowCommand : Command
     {
 
         public class Arguments : CommandArguments
         {
-            [Argument(Required = true, Tooltip = "Value to be searched for")]
-            public TextStructure Value { get; set; }
+            [Argument(Required = true, Tooltip = "Row index (e.g. `1`) which will be returned by this command")]
+            public IntegerStructure Row { get; set; }
 
-            [Argument(Tooltip = "Sheet name where the search is to be performed; can be empty or omitted")]
+            [Argument(Tooltip = "Sheet name; can be empty or omitted")]
             public TextStructure SheetName { get; set; } = new TextStructure(string.Empty);
 
             [Argument(Tooltip = "Name of a variable where the command's result will be stored")]
@@ -29,17 +30,18 @@ namespace G1ANT.Addon.GoogleDocs
 
             
         }
-
-        public GoogleSheetFindAllCommand(AbstractScripter scripter) : base(scripter)
+        
+        public GoogleSheetGetRowCommand(AbstractScripter scripter) : base(scripter)
         { }
 
         public void Execute(Arguments arguments)
         {
             var sheetsManager = SheetsManager.CurrentSheet;
             var sheetName = arguments.SheetName.Value == "" ? sheetsManager.Sheets[0].Properties.Title : arguments.SheetName.Value;
-
-            var result = sheetsManager.FindAll(arguments.Value.Value, sheetName);
-            Scripter.Variables.SetVariableValue(arguments.Result.Value, new Language.TextStructure(result));
+            var row = sheetsManager.GetRow(sheetName, arguments.Row.Value);
+            
+            var result = new ListStructure(row.Select(c => new TextStructure(c)));
+            Scripter.Variables.SetVariableValue(arguments.Result.Value, result);
         }
 
     }
