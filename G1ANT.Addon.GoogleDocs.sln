@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.271
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30413.136
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "G1ANT.Addon.GoogleDocs", "G1ANT.Addon.GoogleDocs\G1ANT.Addon.GoogleDocs.csproj", "{5A6E726B-4BDE-470B-863F-114320914C9B}"
 EndProject
@@ -18,9 +18,7 @@ Global
 		{5A6E726B-4BDE-470B-863F-114320914C9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5A6E726B-4BDE-470B-863F-114320914C9B}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F7337DE7-7BEE-4163-9398-612F6737E03E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F7337DE7-7BEE-4163-9398-612F6737E03E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F7337DE7-7BEE-4163-9398-612F6737E03E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F7337DE7-7BEE-4163-9398-612F6737E03E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

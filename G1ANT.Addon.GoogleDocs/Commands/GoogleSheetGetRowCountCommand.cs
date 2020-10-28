@@ -9,25 +9,20 @@
 */
 using G1ANT.Addon.GoogleDocs.Helpers;
 using G1ANT.Language;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace G1ANT.Addon.GoogleDocs
 {
 
-    [Command(Name = "googlesheet.find", Tooltip = "This command finds a cell with a specified value")]
-    public class GoogleSheetFindCommand : Command
+    [Command(Name = "googlesheet.getrowcount", Tooltip = "This command returns number of rows in a sheet")]
+    public class GoogleSheetGetRowCountCommand : Command
     {
 
         public class Arguments : CommandArguments
         {
-            [Argument(Required = true, Tooltip = "Value to be searched for")]
-            public TextStructure Value { get; set; }
+            [Argument(Required = true, Tooltip = "Column name (e.g. `A`) for which the rows will be counted. Column name is necessary, because number of rows may vary between the columns")]
+            public TextStructure Column { get; set; }
 
-            [Argument(Tooltip = "Sheet name where the search is to be performed; can be empty or omitted")]
+            [Argument(Tooltip = "Sheet name; can be empty or omitted")]
             public TextStructure SheetName { get; set; } = new TextStructure(string.Empty);
 
             [Argument(Tooltip = "Name of a variable where the command's result will be stored")]
@@ -35,16 +30,16 @@ namespace G1ANT.Addon.GoogleDocs
 
             
         }
-        public GoogleSheetFindCommand(AbstractScripter scripter) : base(scripter)
+        
+        public GoogleSheetGetRowCountCommand(AbstractScripter scripter) : base(scripter)
         { }
+
         public void Execute(Arguments arguments)
         {
             var sheetsManager = SheetsManager.CurrentSheet;
             var sheetName = arguments.SheetName.IsNullOrEmpty() ? sheetsManager.Sheets[0].Properties.Title : arguments.SheetName.Value;
-           
-
-            var result = sheetsManager.FindFirst(arguments.Value.Value, sheetName);
-            Scripter.Variables.SetVariableValue(arguments.Result.Value, new Language.TextStructure(result));
+            var result = sheetsManager.GetRowCount(sheetName, arguments.Column.Value);
+            Scripter.Variables.SetVariableValue(arguments.Result.Value, new IntegerStructure(result));
         }
 
     }

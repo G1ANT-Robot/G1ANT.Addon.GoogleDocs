@@ -8,7 +8,12 @@
 *
 */
 
+using G1ANT.Addon.GoogleDocs.Helpers;
 using G1ANT.Language;
+using Google.Apis.Sheets.v4.Data;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
 
 namespace G1ANT.Addon.GoogleDocs
 {
@@ -25,37 +30,48 @@ namespace G1ANT.Addon.GoogleDocs
 
             [Argument(Tooltip = "Name of a variable where the command's result will be stored")]
             public VariableStructure Result { get; set; } = new VariableStructure("result");
-
-            
         }
+
         public GoogleSheetGetValueCommand(AbstractScripter scripter) : base(scripter)
         { }
+
         public void Execute(Arguments arguments)
         {
             var sheetsManager = SheetsManager.CurrentSheet;
-            var sheetName = arguments.SheetName.Value == "" ? sheetsManager.sheets[0].Properties.Title : arguments.SheetName.Value;
+            var sheetName = arguments.SheetName.IsNullOrEmpty() ? sheetsManager.Sheets[0].Properties.Title : arguments.SheetName.Value;
             var val = sheetsManager.GetValue(arguments.Range.Value, sheetName);
-            ListStructure result = new ListStructure(new System.Collections.Generic.List<object>());
-            //string result=null;
-            //var result = val. == null ? "" : val.Values[0][0].ToString();
-            if (val.ValueRanges[0].Values ==null)
+
+
+            var groups = new List<DataTable>(); // groups of columns of cells
+
+            if (val.ValueRanges[0].Values != null)
             {
-                for (int i = 0; i < val.ValueRanges.Count; i++)
-                {
-                    TextStructure tmp = new TextStructure("");
-                    result.Value.Add(tmp);
-                }
-                Scripter.Variables.SetVariableValue(arguments.Result.Value, result);
+                groups = val.ValueRanges.Select(group => WrapGroupInDataTable(group)).ToList();
             }
-            else
-            { 
-                for (int i = 0; i < val.ValueRanges.Count; i++)
-                {
-                   // TextStructure tmp = new TextStructure(val.ValueRanges[i].Values[0][0].ToString());
-                    result.Value.Add(val.ValueRanges[i].Values[0][0].ToString());
-                }
-                Scripter.Variables.SetVariableValue(arguments.Result.Value, result);
-            }
+
+            var resultStructure = new ListStructure(groups.Select(g => new DataTableStructure(g)));
+
+            Scripter.Variables.SetVariableValue(arguments.Result.Value, resultStructure);
         }
+
+        private DataTable WrapGroupInDataTable(ValueRange group)
+        {
+            var result = new DataTable(group.Range);
+            var maxColumnCount = group.Values.Max(r => r.Count);
+
+            result.Columns.AddRange(
+                Enumerable.Range(0, maxColumnCount).Select(c => new DataColumn(c.ToString())).ToArray()
+            );
+
+            foreach (var row in group.Values)
+            {
+                var dataTableRow = result.NewRow();
+                dataTableRow.ItemArray = row.ToArray();
+                result.Rows.Add(dataTableRow);
+            }
+
+            return result;
+        }
+
     }
 }
