@@ -7,6 +7,7 @@
 *    See License.txt file in the project root for full license information.
 *
 */
+using G1ANT.Addon.GoogleDocs.Helpers;
 using G1ANT.Language;
 using System.Linq;
 
@@ -37,7 +38,7 @@ namespace G1ANT.Addon.GoogleDocs
         public void Execute(Arguments arguments)
         {
             var sheetsManager = SheetsManager.CurrentSheet;
-            var sheetName = arguments.SheetName.Value == "" ? sheetsManager.Sheets[0].Properties.Title : arguments.SheetName.Value;
+            var sheetName = arguments.SheetName.IsNullOrEmpty() ? sheetsManager.Sheets[0].Properties.Title : arguments.SheetName.Value;
             var row = sheetsManager.GetRow(sheetName, arguments.Row.Value);
             
             var result = new ListStructure(row.Select(c => new TextStructure(c)));

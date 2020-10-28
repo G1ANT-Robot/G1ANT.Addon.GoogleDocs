@@ -107,6 +107,7 @@
     <Compile Include="Commands\GoogleSheetOpenCommand.cs" />
     <Compile Include="Api\SheetsManager.cs" />
     <Compile Include="GoogleAddon.cs" />
+    <Compile Include="Helpers\StringHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Api\SheetsWrapper.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
@@ -189,6 +190,9 @@
     <EmbeddedResource Include="License.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>copy /y c:\projects\Addons\G1ANT.Addon.GoogleDocs\G1ANT.Addon.GoogleDocs\bin\debug\G1ANT.Addon.GoogleDocs.dll c:\Users\Łukasz\Documents\G1ANT.Robot\Addons\G1ANT.Addon.GoogleDocs.dll</PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
