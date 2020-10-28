@@ -9,7 +9,9 @@
 */
 
 using G1ANT.Language;
+using Google.Apis.Sheets.v4.Data;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 
 namespace G1ANT.Addon.GoogleDocs
@@ -39,38 +41,36 @@ namespace G1ANT.Addon.GoogleDocs
             var val = sheetsManager.GetValue(arguments.Range.Value, sheetName);
 
 
-            var groups = new List<List<List<string>>>(); // groups of columns of cells
+            var groups = new List<DataTable>(); // groups of columns of cells
 
-            if (val.ValueRanges[0].Values == null)
+            if (val.ValueRanges[0].Values != null)
             {
-                for (int i = 0; i < val.ValueRanges.Count; i++)
-                {
-                    const string emptyCell = "";
-                    var emptyColumn = new List<string>() { emptyCell };
-                    var emptyGroup = new List<List<string>>() { emptyColumn };
-                    groups = new List<List<List<string>>>() { emptyGroup };
-                }
-            }
-            else
-            {
-                groups = val.ValueRanges.Select(
-                    group => group.Values.Select(
-                        column => column.Select(
-                            cell => cell.ToString()
-                        ).ToList()
-                    ).ToList()
-                ).ToList();
+                groups = val.ValueRanges.Select(group => WrapGroupInDataTable(group)).ToList();
             }
 
-            var resultStructure = new ListStructure(groups.Select(
-                group => new ListStructure(group.Select(
-                    columns => new ListStructure(columns.Select(
-                        cell => new TextStructure(cell.ToString())
-                     ))
-                ))
-            ));
+            var resultStructure = new ListStructure(groups.Select(g => new DataTableStructure(g)));
 
             Scripter.Variables.SetVariableValue(arguments.Result.Value, resultStructure);
         }
+
+        private DataTable WrapGroupInDataTable(ValueRange group)
+        {
+            var result = new DataTable(group.Range);
+            var maxColumnCount = group.Values.Max(r => r.Count);
+
+            result.Columns.AddRange(
+                Enumerable.Range(0, maxColumnCount).Select(c => new DataColumn(c.ToString())).ToArray()
+            );
+
+            foreach (var row in group.Values)
+            {
+                var dataTableRow = result.NewRow();
+                dataTableRow.ItemArray = row.ToArray();
+                result.Rows.Add(dataTableRow);
+            }
+
+            return result;
+        }
+
     }
 }
